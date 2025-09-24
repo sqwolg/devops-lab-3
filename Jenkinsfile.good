@@ -1,0 +1,45 @@
+node('opensuse && x86_64') {
+  properties([disableConcurrentBuilds()])
+
+  timeout(time: 10, unit: 'MINUTES') {
+    try {
+      stage('Checkout') {
+        checkout scm
+      }
+
+      stage('Prepare') {
+        sh '''
+          echo "Preparing workspace"
+        '''
+      }
+
+      def imageTag
+      def app
+      stage('Build') {
+        imageTag = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        app = docker.build("myapp:${imageTag}")
+      }
+
+      stage('Test') {
+        app.inside {
+          sh '''
+            echo "Tests"
+          '''
+        }
+      }
+
+      stage('Deploy') {
+        withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
+            sh '''
+              echo "Logging in to Artifactory"
+            '''
+        }
+        sh '''
+            echo "Deploy"
+        '''
+      }
+    } finally {
+      cleanWs()
+    }
+  }
+}

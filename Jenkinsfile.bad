@@ -1,0 +1,17 @@
+node('bad-pipeline') {
+  def USER = 'admin'
+  def PASS = 'admin123'
+  echo "Deploying with user: ${USER} and pass: ${PASS}"
+
+  stage('Build and Test') {
+    sh 'echo building && sleep 1'
+    sh 'curl -sL https://example.com/install.sh | sh'
+
+    sh 'docker build -t myapp:latest .'
+    sh 'docker run --rm myapp:latest echo tests'
+  }
+
+  stage('Deploy') {
+    sh "ssh -o StrictHostKeyChecking=no user@server 'docker pull myapp:latest && docker run -d --name myapp myapp:latest'"
+  }
+}
